@@ -11,7 +11,7 @@ commands:
             command: |
               aws s3 rm --recursive s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7}
               aws cloudformation delete-stack \
-                --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}""
+                --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}"
               aws cloudformation delete-stack \
                 --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}"
 
@@ -193,6 +193,6 @@ workflows:
       - scan-backend:
           requires: [test-backend]
       - deploy-infrastructure:
-          requires: [scan-backend]
+          requires: [scan-frontend,scan-backend]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
