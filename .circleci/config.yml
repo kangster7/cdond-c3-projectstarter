@@ -1,6 +1,5 @@
 version: 2.1
 
-
 jobs:
   build-frontend:
     docker:
@@ -15,7 +14,6 @@ jobs:
             cd frontend
             npm install
             npm run build
-          # exit 1
 
   build-backend:
     docker:
@@ -30,7 +28,6 @@ jobs:
              cd backend
              npm install
              npm run build
-          #exit 1
 
   test-frontend:
     docker:
@@ -40,12 +37,12 @@ jobs:
       - restore_cache:
           keys: [frontend-test]
       - run:
-          name: Frontend test 
+          name: Front-end test
           command: |
-            cd frontend
-            npm install
-            npm run test 
-
+             cd frontend
+             npm install
+             npm run test
+                
   test-backend:
     docker:
       - image: circleci/node:13.8.0
@@ -54,12 +51,11 @@ jobs:
       - restore_cache:
           keys: [backend-test]
       - run:
-          name: Backend test 
+          name: back-end test
           command: |
-            cd backend
-            npm install
-            npm run test 
-
+             cd backend
+             npm install
+             npm run test
 
   scan-frontend:
     docker:
@@ -69,14 +65,48 @@ jobs:
       - restore_cache:
           keys: [frontend-scan]
       - run:
-          name: Frontend scan
+          name: Front-end scan
           command: |
-            cd frontend
-            npm install
-            npm audit fix --audit-level=critical --force
-            npm audit --audit-level=critical
+             cd frontend
+             npm install
+             npm audit fix --audit-level=critical --force
+             npm audit --audit-level=critical
+  
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Ensure front-end infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/frontend.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Add back-end ip to ansible inventory
+          command: |
+            aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:project,Values=udapeople" \
+              --output text >> inventory
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
+      # Here's where you will add some code to rollback on failure      
 
-    
   scan-backend:
     docker:
       - image: circleci/node:13.8.0
@@ -85,53 +115,14 @@ jobs:
       - restore_cache:
           keys: [backend-scan]
       - run:
-          name: Backend scan
+          name: Back-end scan
           command: |
-            cd backend
-            npm install
-            npm audit fix --audit-level=critical --force
-            npm audit fix --force
-            npm audit --audit-level=critical
-
-  
-  deploy-infrastructure:
-      docker:
-        - image: amazon/aws-cli
-      
-      steps:
-        - checkout
-        - run: yum install -y tar gzip
-        - run:
-            name: Ensure back-end infrastructure exists
-            command: |
-              aws cloudformation deploy \
-                --template-file .circleci/files/backend.yml \
-                --tags project=udapeople \
-                --stack-name udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7} \
-                --parameter-overrides ID= ${CIRCLE_WORKFLOW_ID:0:7}  
-        - run:
-            name: Ensure front-end infrastructure exist
-            command: |
-              aws cloudformation deploy \
-                --template-file .circleci/files/frontend.yml \
-                --tags project=udapeople \
-                --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7} \
-                --parameter-overrides ID= ${CIRCLE_WORKFLOW_ID:0:7} 
-        - run:
-            name: Add back-end ip to ansible inventory
-            command: |
-                    aws ec2 describe-instances \
-                    --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                    --filters "Name=tag:project,Values=udapeople" \
-                    --output text >> inventory
-        - persist_to_workspace:
-            root: ~/
-            paths:
-              - project/.circleci/ansible/inventory.txt
-      # Here's where you will add some code to rollback on failure  
-       
-
-  
+             cd backend
+             npm install
+             npm audit fix --audit-level=critical --force
+             npm audit fix --force
+             npm audit --audit-level=critical
+            
 workflows:
   default:
     jobs:
@@ -146,5 +137,4 @@ workflows:
       - scan-backend:
           requires: [test-backend]
       - deploy-infrastructure:
-          requires: [scan-backend, scan-frontend]
-
+          requires: [scan-backend]
