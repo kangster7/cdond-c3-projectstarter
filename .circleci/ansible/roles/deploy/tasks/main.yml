@@ -1,3 +1,5 @@
+---
+
 - name: Extract zipped artifiact
   become:  true
   shell: |
