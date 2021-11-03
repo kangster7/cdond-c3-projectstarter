@@ -17,23 +17,34 @@ commands:
 
 
     revert-migrations:
-      description: Revert the last migration if successfully run in the current workflow.
-      parameters:
-    # Add parameter here     
+      description: Revert the last migration if successfully run in the current workflow.  
       steps:
         - run:
             name: Revert migrations
         # Add when this will run
             command: |
 
-              SUCCESS = 1
-              if(( $SUCCESS==1 )); 
-              then
-                cd ~/project/backend
-                npm install
-                Add revert code here. You can find this in the Getting Started section.
-              fi
+              revert-migrations:
+              description: Revert the last migration if successfully run in the current workflow.
+              parameters:
+                workflow_id:
+                  type: string      
+              steps:
+                - run:
+                    name: Revert migrations
+                    when: on_fail
+                    command: |
+                      # Your Memstash GET URL code goes here
+                      # See an example below
+                      SUCCESS=$(curl -H "token: 34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request GET https://api.memstash.io/values/migration_<< parameters.workflow_id >>)
+                      if (( $SUCCESS == 1 ));
+                      then
+                        cd ~/project/backend
+                        npm install
+                        npm run migration:revert
+                      fi  
 
+              
 
 
 jobs:
@@ -201,9 +212,11 @@ jobs:
             name: Run migrations
             command: |
               cd backend
-              npm install
-              npm run migrations > migrations_dump.txt
-              
+              sudo npm install
+              sudo npm audit fix --audit-level=critical --force 
+              npm audit fix
+              sudo npm run migrations > migrations_dump.txt
+
         - run:
             name: Send migration results to memstash
             command: |
@@ -212,25 +225,29 @@ jobs:
                 curl -H "Content-Type: text/plain" -H "token: 34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
               fi
 
+          
+
       # Here's where you will add some code to rollback on failure    
 
 
-  deploy-backend:
-    docker:
-      - image : python:3.7-alpine3.11
-    steps:
-      # Checkout code from git
-      # Add ssh keys with fingerprint
-      # attach workspace
-      - run:
-          name: Install dependencies
-          command: |
-            # your code here
-      - run:
-          name: Deploy backend
-          command: |
-            # your code here
-      # Here's where you will add some code to rollback on failure
+  # deploy-backend:
+  #   docker:
+  #     - image : python:3.7-alpine3.11
+  #   steps:
+  #     - checkout
+  #     - add_ssh_keys:
+  #         fingerprints: ["31:82:9e:29:a7:95:ee:bc:fe:13:60:6a:e9:14:8e:02"]
+  #     - attach workspace:
+  #         at: ~/
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update ansible openssh-client tar gzip 
+  #     - run:
+  #         name: Deploy backend
+  #         command: |
+  #           # your code here
+  #     # Here's where you will add some code to rollback on failure
 
 workflows:
   default:
