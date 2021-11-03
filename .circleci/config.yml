@@ -209,7 +209,6 @@ jobs:
         - checkout
         - restore_cache:
             keys: ["backend-build"]
-
         - run:
             name: Run migrations
             command: |
@@ -271,12 +270,13 @@ jobs:
     docker:
       - image : python:3.7-alpine3.11
     steps:
+      - run: apk add --update tar
+      - run: apk add --update gzip
       - checkout
       - add_ssh_keys:
           fingerprints: ["45:5b:10:ab:ac:4d:d7:f0:eb:b0:cc:74:b2:4a:75:13"]
-
-#      - attach workspace:
-#          at: ~/
+      - attach workspace:
+          at: ~/
       - run:
           name: Install dependencies
           command: |
