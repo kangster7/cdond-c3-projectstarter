@@ -82,7 +82,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [frontend-test]
+          keys: [frontend-build]
       - run:
           name: Front-end test
           command: |
@@ -96,7 +96,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [backend-test]
+          keys: [backend-build]
       - run:
           name: back-end test
           command: |
@@ -110,7 +110,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [frontend-scan]
+          keys: [frontend-build]
       - run:
           name: Front-end scan
           command: |
@@ -125,7 +125,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [backend-scan]
+          keys: [backend-build]
       - run:
           name: Back-end scan
           command: |
@@ -178,6 +178,8 @@ jobs:
       - image: python:3.7-alpine3.11
     steps:
       - checkout
+      - run: apk add --update tar
+      - run: apk add --update gzip
       - add_ssh_keys:
           fingerprints: ["45:5b:10:ab:ac:4d:d7:f0:eb:b0:cc:74:b2:4a:75:13"]
       - attach_workspace:
@@ -213,8 +215,6 @@ jobs:
             command: |
               cd backend
               sudo npm install
-              sudo npm audit fix --audit-level=critical --force 
-              npm audit fix
               sudo npm run migrations > migrations_dump.txt
 
         - run:
@@ -224,10 +224,36 @@ jobs:
               then
                 curl -H "Content-Type: text/plain" -H "token: 34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
               fi
-
-          
-
       # Here's where you will add some code to rollback on failure    
+
+
+  deploy-frontend:
+    docker:
+      - image: circleci/node:13.8.8
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            cd frontend
+            sudo npm install webpack-dev-server -g
+      - run:
+          name: Get backend url
+          command: |
+            # your code here
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+      - run:
+          name: Deploy frontend objects
+          command: |
+            # your code here
+      # Here's where you will add some code to rollback on failure 
+
+
+
+
+
+
 
 
   # deploy-backend:
