@@ -16,23 +16,23 @@ commands:
                 --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}"
 
 
-      revert-migrations:
-        description: Revert the last migration if successfully run in the current workflow.
-        parameters:
-      # Add parameter here     
-          steps:
-            - run:
-              name: Revert migrations
-          # Add when this will run
-              command: |
+    revert-migrations:
+      description: Revert the last migration if successfully run in the current workflow.
+      parameters:
+    # Add parameter here     
+      steps:
+        - run:
+            name: Revert migrations
+        # Add when this will run
+            command: |
 
-                SUCCESS = 1
-                if(( $SUCCESS==1 )); 
-                then
-                  cd ~/project/backend
-                  npm install
-                  Add revert code here. You can find this in the Getting Started section.
-                fi
+              SUCCESS = 1
+              if(( $SUCCESS==1 )); 
+              then
+                cd ~/project/backend
+                npm install
+                Add revert code here. You can find this in the Getting Started section.
+              fi
 
 
 
