@@ -227,27 +227,27 @@ jobs:
       # Here's where you will add some code to rollback on failure    
 
 
-  deploy-frontend:
-    docker:
-      - image: circleci/node:13.8.8
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            cd frontend
-            sudo npm install webpack-dev-server -g
-      - run:
-          name: Get backend url
-          command: |
-            # your code here
-            export API_URL="http://${BACKEND_IP}:3030"
-            echo "${API_URL}"
-      - run:
-          name: Deploy frontend objects
-          command: |
-            # your code here
-      # Here's where you will add some code to rollback on failure 
+  # deploy-frontend:
+  #   docker:
+  #     - image: circleci/node:13.8.8
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           cd frontend
+  #           sudo npm install webpack-dev-server -g
+  #     - run:
+  #         name: Get backend url
+  #         command: |
+  #           # your code here
+  #           export API_URL="http://${BACKEND_IP}:3030"
+  #           echo "${API_URL}"
+  #     - run:
+  #         name: Deploy frontend objects
+  #         command: |
+  #           # your code here
+  #     # Here's where you will add some code to rollback on failure 
 
 
 
