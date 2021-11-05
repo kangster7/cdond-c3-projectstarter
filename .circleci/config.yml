@@ -176,7 +176,7 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["31:82:9e:29:a7:95:ee:bc:fe:13:60:6a:e9:14:8e:02"]
+          fingerprints: ["45:5b:10:ab:ac:4d:d7:f0:eb:b0:cc:74:b2:4a:75:13"]
       - attach_workspace:
           at: ~/
       - run:
@@ -207,7 +207,7 @@ jobs:
             command: |
               cd backend
               npm install
-#             npm run migrations > migrations_dump.txt
+              npm run migrations > migrations_dump.txt
 
         - run:
             name: Send migration results to memstash
@@ -286,8 +286,8 @@ jobs:
             cd .circleci/ansible
             echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
-            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.txt deploy-backend.yml
             ansible-playbook -i inventory.txt deploy-backend.yml
+            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.txt deploy-backend.yml
       # Here's where you will add some code to rollback on failure
 
 workflows:
