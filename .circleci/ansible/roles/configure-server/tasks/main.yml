@@ -18,3 +18,9 @@
     global: yes
     production: yes
     state: present
+
+
+- name: remove dependencies that are no longer required
+  become: yes
+  apt:
+    autoremove: yes

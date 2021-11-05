@@ -1,49 +1,32 @@
 version: 2.1
-orbs:
-    aws-cli: circleci/aws-cli@2.0.3
-
-parameters:
-  workflow-id:
-    type: string
-    default: "${CIRCLE_WORKFLOW_ID:0:7}"
 
 commands:
+  destroy-environment:
+    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}  
+            aws cloudformation delete-stack --stack-name udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}        
 
-    destroy-environment:
-      steps:
-        - run:
-            name: Destroy environment
-            when: on_fail
-            command: |
-              aws s3 rm --recursive s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7}
-              aws cloudformation delete-stack \
-                --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}"
-              aws cloudformation delete-stack \
-                --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}"
-
-
-    revert-migrations:
-      description: Revert the last migration if successfully run in the current workflow.  
-      parameters:
-        workflow_id:
-          type: string      
-      steps:
-        - run:
-            name: Revert migrations
-            when: on_fail
-            command: |
-              # Your Memstash GET URL code goes here
-              # See an example below
-              SUCCESS=$(curl -H "token: 34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request GET https://api.memstash.io/values/migration_<< parameters.workflow_id >>)
-              if (( $SUCCESS == 1 ));
-              then
-                cd ~/project/backend
-                npm install
-                npm run migration:revert
-              fi  
-
-              
-
+  revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.    
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+            # Your Memstash GET URL code goes here
+            # See an example below
+            SUCCESS=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7})
+            if (( $SUCCESS == 1 ));
+            then
+              cd ~/project/backend
+              npm install
+              npm run migration:revert
+            fi 
 
 jobs:
   build-frontend:
@@ -59,6 +42,9 @@ jobs:
             cd frontend
             npm install
             npm run build
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
 
   build-backend:
     docker:
@@ -73,6 +59,9 @@ jobs:
              cd backend
              npm install
              npm run build
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build
 
   test-frontend:
     docker:
@@ -82,11 +71,11 @@ jobs:
       - restore_cache:
           keys: [frontend-build]
       - run:
-          name: Front-end test
+          name: Run frontend test
           command: |
-             cd frontend
-             npm install
-             npm run test
+            cd frontend
+            npm install
+            npm run test
                 
   test-backend:
     docker:
@@ -96,11 +85,11 @@ jobs:
       - restore_cache:
           keys: [backend-build]
       - run:
-          name: back-end test
+          name: Run backend test
           command: |
-             cd backend
-             npm install
-             npm run test
+            cd backend
+            npm install
+            npm run test
 
   scan-frontend:
     docker:
@@ -110,12 +99,13 @@ jobs:
       - restore_cache:
           keys: [frontend-build]
       - run:
-          name: Front-end scan
+          name: Run frontend test
           command: |
-             cd frontend
-             npm install
-             npm audit fix --audit-level=critical --force
-             npm audit --audit-level=critical
+            cd frontend
+            npm install
+            # npm install oauth-sign@^0.9.0
+            npm audit fix --audit-level=critical --force
+            npm audit --audit-level=critical
 
   scan-backend:
     docker:
@@ -125,127 +115,116 @@ jobs:
       - restore_cache:
           keys: [backend-build]
       - run:
-          name: Back-end scan
+          name: Run backend test
           command: |
-             cd backend
-             npm install
-             npm audit fix --audit-level=critical --force
-             npm audit fix --force
-             npm audit --audit-level=critical
+            cd backend
+            npm install
+            # npm install oauth-sign@^0.9.0
+            npm audit fix --audit-level=critical --force
+            npm audit fix --force
+            npm audit --audit-level=critical         
 
-  
-  
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - run: yum install -y tar gzip
+      - run: yum install -y tar gzip 
       - run:
           name: Ensure back-end infrastructure exists
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
-              --tags project=udapeople \
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  \
+              --tags project=udapeople
       - run:
-          name: Ensure front-end infrastructure exist
+          name: Ensure front-end infrastructure exists
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
-              --tags project=udapeople \
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  \
+              --tags project=udapeople
       - run:
           name: Add back-end ip to ansible inventory
           command: |
             aws ec2 describe-instances \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --filters "Name=tag:project,Values=udapeople" \
-              --output text >> inventory
+              --query 'Reservations[*].Instances[*].PublicIpAddress'\
+              --output text >> .circleci/ansible/inventory.txt
       - persist_to_workspace:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-      # Here's where you will add some code to rollback on failure  
-
+      - destroy-environment 
 
   configure-infrastructure:
     docker:
       - image: python:3.7-alpine3.11
     steps:
       - checkout
-      - run: apk add --update tar
-      - run: apk add --update gzip
       - add_ssh_keys:
-          fingerprints: ["45:5b:10:ab:ac:4d:d7:f0:eb:b0:cc:74:b2:4a:75:13"]
+          fingerprints: ["9c:0c:9f:2b:0a:3a:e7:d1:83:b8:00:ab:0d:cc:f4:2a"]
       - attach_workspace:
           at: ~/
       - run:
           name: Install dependencies
           command: |
             apk add --update ansible
-            cat .circleci/ansible/inventory.txt 
+            apk add --update tar
+            apk add --update gzip
+            pip install awscli
+            aws --version
       - run:
           name: Configure server
-          command: |  
-                 cd .circleci/ansible
-                 ansible-playbook -i inventory.txt configure-server.yml
-      - run:
-          name: Install AWS CLI for rollback
-          when: on_fail
           command: |
-              apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
-
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt configure-server.yml
       - destroy-environment
 
-
   run-migrations:
-      docker:
-        - image: circleci/node:13.8.0
-      steps:
-        - checkout
-        - restore_cache:
-            keys: ["backend-build"]
-        - run:
-            name: Run migrations
-            command: |
-              cd backend
-              npm install
-#             npm run migrations > migrations_dump.txt
-
-        - run:
-            name: Send migration results to memstash
-            command: |
-              if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
-              then
-                curl -H "Content-Type: text/plain" -H "token: 34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
-              fi
-      # Here's where you will add some code to rollback on failure    
-
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Run migrations
+          command: |
+             cd backend
+             npm install
+             # Run and sve the migration output
+             npm run migrations > migrations_dump.txt
+      - run:
+          name: Send migration results to memstash
+          command: |
+            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+            then
+              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
+            fi
+      - revert-migrations  
 
   deploy-frontend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
+      - attach_workspace:
+          at: ~/
       - run:
           name: Install dependencies
           command: |
             cd frontend
             sudo npm install webpack-dev-server -g
-            sudo npm install 
+            sudo npm install
       - run:
           name: Get backend url
           command: |
-            export BACKEND_IP= $(aws ec2 describe-instances \
-              --query 'Reservations[*].Instances[*].PublicIpAddress') 
+            export BACKEND_IP=$(aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress'\)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "API_URL = ${API_URL}"
             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
-      
       - aws-cli/setup
       - run:
           name: Deploy frontend objects
@@ -255,32 +234,26 @@ jobs:
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-
-#     Here's where you will add some code to rollback on failure 
-      - run:
-          name: Install AWS CLI for rollback
-          when: on_fail
-          command: |
-              apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
-
-
+      - destory-environment
+      - revert-migrations
 
   deploy-backend:
     docker:
-      - image : python:3.7-alpine3.11
+      - image: python:3.7-alpine3.11
     steps:
-      - run: apk add --update tar
-      - run: apk add --update gzip
-      - run: apk add --update nodejs npm
       - checkout
       - add_ssh_keys:
-            fingerprints: ["45:5b:10:ab:ac:4d:d7:f0:eb:b0:cc:74:b2:4a:75:13"]
+          fingerprints: ["9c:0c:9f:2b:0a:3a:e7:d1:83:b8:00:ab:0d:cc:f4:2a"]
       - attach_workspace:
-            at: ~/
+          at: ~/
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible openssh-client tar gzip
+            apk add --update ansible
+            apk add --update tar
+            apk add --update gzip
+            pip install awscli
+            aws --version
       - run:
           name: Deploy backend
           command: |
@@ -288,12 +261,15 @@ jobs:
             npm i
             npm run build
             cd ..
+            # Zip the directory
             tar -C backend -czvf artifact.tar.gz .
             cd .circleci/ansible
             echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml
-      # Here's where you will add some code to rollback on failure
+      - destory-environment
+      - revert-migrations
+
 
 workflows:
   default:
@@ -304,23 +280,26 @@ workflows:
           requires: [build-frontend]
       - test-backend:
           requires: [build-backend]
-      - scan-frontend:
-          requires: [test-frontend]
       - scan-backend:
-          requires: [test-backend]
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
       - deploy-infrastructure:
-          requires: [scan-frontend,scan-backend]
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+        #  filters:
+        #    branches:
+        #      only: [test-feature-branch]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
       - run-migrations:
           requires: [configure-infrastructure]
-      - deploy-backend:
-          requires: [run-migrations]
       - deploy-frontend:
           requires: [run-migrations]
-
-
-
-
- # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-            
+      #- deploy-backend:
+      #    requires: [run-migrations]
+      #- smoke-test:
+      #    requires: [deploy-backend, deploy-frontend]
+      #- cloudfront-update:
+      #    requires: [smoke-test]
+      #- cleanup:
+      #    requires: [cloudfront-update]
