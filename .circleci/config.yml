@@ -264,9 +264,6 @@ jobs:
     docker:
       - image : python:3.7-alpine3.11
     steps:
-      - run: apk add --update tar
-      - run: apk add --update gzip
-      - run: apk add --update nodejs npm
       - checkout
       - add_ssh_keys:
             fingerprints: ["45:5b:10:ab:ac:4d:d7:f0:eb:b0:cc:74:b2:4a:75:13"]
@@ -276,6 +273,14 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update ansible openssh-client tar gzip
+            apk add --update ansible
+            apk add --update tar
+            apk add --update gzip
+            apk add --update curl
+            apk add --update nodejs npm
+            apk add --update npm
+            pip install awscli
+            aws --version
       - run:
           name: Deploy backend
           command: |
@@ -288,7 +293,7 @@ jobs:
             cd .circleci/ansible
             echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
-            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.txt deploy-backend.yml
+            ansible-playbook -i inventory.txt deploy-backend.yml
       # Here's where you will add some code to rollback on failure
 
       - run:
