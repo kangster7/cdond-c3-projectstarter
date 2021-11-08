@@ -288,6 +288,35 @@ jobs:
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.txt deploy-backend.yml
       # Here's where you will add some code to rollback on failure
 
+      - revert-migrations
+      - destroy-environment
+
+
+  smoke-test:
+    docker: 
+      - image: python:3.7-alpine3.11
+      # Lightweight Docker image 
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update curl
+      - run:
+          name: Get backend url
+          command: |
+            # your code here
+      - run:
+          name: Backend smoke test.
+          command: |
+            # your code here
+      - run:
+          name: Frontend smoke test.
+          command: |
+            # your code here
+      # Here's where you will add some code to rollback on failure  
+
+
 workflows:
   default:
     jobs:
@@ -298,9 +327,9 @@ workflows:
       - test-backend:
           requires: [build-backend]
       - scan-frontend:
-          requires: [test-frontend]
+          requires: [build-frontend]
       - scan-backend:
-          requires: [test-backend]
+          requires: [build-backend]
       - deploy-infrastructure:
           requires: [scan-frontend,scan-backend]
       - configure-infrastructure:
