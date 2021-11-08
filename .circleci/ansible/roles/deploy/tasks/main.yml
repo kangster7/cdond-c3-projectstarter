@@ -2,11 +2,11 @@
   become: true
   copy:
     src: /home/backend.tar.gz
-    dest: /home/ubuntu/backend.tar.gz
+    dest: ~/project/.circleci/ansible/roles/deploy/files/backend.tar.gz
 
 - name: Start PM2
   shell: |
-    cd /home/ubuntu/
+    cd ~/project/.circleci/ansible/roles/deploy/files
     tar xzvf backend.tar.gz
     mv home/circleci/project/backend .
     cd backend
