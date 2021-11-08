@@ -33,7 +33,7 @@ commands:
             command: |
               # Your Memstash GET URL code goes here
               # See an example below
-              SUCCESS=$(curl -H "token: 34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request GET https://api.memstash.io/values/migration_<< parameters.workflow_id >>)
+              SUCCESS=$(curl -H "token: 34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7})
               if (( $SUCCESS == 1 ));
               then
                 cd ~/project/backend
@@ -295,8 +295,8 @@ jobs:
           when: on_fail
           command: |
               apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
-      # - revert-migrations
-      # - destroy-environment
+      - revert-migrations
+      - destroy-environment
 
 
   # smoke-test:
