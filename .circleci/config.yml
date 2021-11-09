@@ -309,7 +309,13 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            apk add --update ansible
+            apk add --update tar
+            apk add --update gzip
             apk add --update curl
+            apk add --update nodejs npm
+            apk add --update npm
+            pip install awscli
             aws --version
       - attach_workspace:
           at: ~/
