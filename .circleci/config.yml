@@ -335,7 +335,7 @@ jobs:
       - run:
           name: Frontend smoke test.
           command: |
-            URL="http://udapeople-<< pipeline.parameters.workflow-id >>.s3-website-eu-west-3.amazonaws.com"
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com"
             echo $URL
             if curl -s ${URL} | grep "Welcome"
             then
@@ -352,55 +352,55 @@ jobs:
       - destroy-environment 
 
 
-  cloudfront-update:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
-            apk add --update curl
-      - run:
-          name: Save old workflow ID
-          command: |
-            export OldWorkflowID=$(aws cloudformation list-exports \
-              --query "Exports[?Name==\`WorkflowID\`].Value" \
-              --no-paginate --output text)
-            echo "Old Workflow ID: ${OldWorkflowID}"
-            curl -H "Content-Type: text/plain" \
-              -H "token:34ca8cc7-0d16-450f-96f2-3d46b0dc406e" \
-              --request PUT --data $OldWorkflowID \
-              https://api.memstash.io/values/old_workflow_id_${CIRCLE_WORKFLOW_ID}
-      - run:
-          name: Update cloudfront distribution
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/cloudfront.yml \
-              --stack-name "udapeople-cloudfront" \
-              --parameter-overrides WorkflowID=${CIRCLE_WORKFLOW_ID} \
-              --tags project=udapeople
-      - revert-migrations
-      - destroy-environment
+  # cloudfront-update:
+  #   docker:
+  #     - image: python:3.7-alpine3.11
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+  #           apk add --update curl
+  #     - run:
+  #         name: Save old workflow ID
+  #         command: |
+  #           export OldWorkflowID=$(aws cloudformation list-exports \
+  #             --query "Exports[?Name==\`WorkflowID\`].Value" \
+  #             --no-paginate --output text)
+  #           echo "Old Workflow ID: ${OldWorkflowID}"
+  #           curl -H "Content-Type: text/plain" \
+  #             -H "token:34ca8cc7-0d16-450f-96f2-3d46b0dc406e" \
+  #             --request PUT --data $OldWorkflowID \
+  #             https://api.memstash.io/values/old_workflow_id_${CIRCLE_WORKFLOW_ID}
+  #     - run:
+  #         name: Update cloudfront distribution
+  #         command: |
+  #           aws cloudformation deploy \
+  #             --template-file .circleci/files/cloudfront.yml \
+  #             --stack-name "udapeople-cloudfront" \
+  #             --parameter-overrides WorkflowID=${CIRCLE_WORKFLOW_ID} \
+  #             --tags project=udapeople
+  #     - revert-migrations
+  #     - destroy-environment
 
-  cleanup:
-    docker:
-      - image: cimg/base:2020.01
-    steps:
-      - checkout
-      - aws-cli/setup
-      - run:
-          name: Remove old stacks and files
-          command: |
-                export OldWorkflowID=$(curl -H "token:34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request GET https://api.memstash.io/values/old_workflow_id_${CIRCLE_WORKFLOW_ID})
-                echo "Old Workflow ID: ${OldWorkflowID}"
-                if [ "${OldWorkflowID}" !=${CIRCLE_WORKFLOW_ID} ]
-                then
-                  aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
-                  aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
-                  aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
-                fi
+  # cleanup:
+  #   docker:
+  #     - image: cimg/base:2020.01
+  #   steps:
+  #     - checkout
+  #     - aws-cli/setup
+  #     - run:
+  #         name: Remove old stacks and files
+  #         command: |
+  #               export OldWorkflowID=$(curl -H "token:34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request GET https://api.memstash.io/values/old_workflow_id_${CIRCLE_WORKFLOW_ID})
+  #               echo "Old Workflow ID: ${OldWorkflowID}"
+  #               if [ "${OldWorkflowID}" !=${CIRCLE_WORKFLOW_ID} ]
+  #               then
+  #                 aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+  #                 aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+  #                 aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+  #               fi
 
 workflows:
   default:
