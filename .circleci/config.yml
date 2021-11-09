@@ -22,10 +22,7 @@ commands:
                 --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}"
 
     revert-migrations:
-      description: Revert the last migration if successfully run in the current workflow.  
-      parameters:
-        workflow_id:
-          type: string      
+      description: Revert the last migration if successfully run in the current workflow.       
       steps:
         - run:
             name: Revert migrations
@@ -256,8 +253,8 @@ jobs:
           command: |
               apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
 
-      # - revert-migrations
-      # - destroy-environment  
+      - revert-migrations
+      - destroy-environment  
 
 
   deploy-backend:
@@ -272,7 +269,6 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible openssh-client tar gzip
             apk add --update ansible
             apk add --update tar
             apk add --update gzip
@@ -301,8 +297,8 @@ jobs:
           when: on_fail
           command: |
               apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
-      # - revert-migrations
-      # - destroy-environment
+      - revert-migrations
+      - destroy-environment
 
 
   # smoke-test:
