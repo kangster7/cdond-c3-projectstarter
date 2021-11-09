@@ -370,7 +370,7 @@ jobs:
               --no-paginate --output text)
             echo "Old Workflow ID: ${OldWorkflowID}"
             curl -H "Content-Type: text/plain" \
-              -H "token: << pipeline.parameters.memstash-token >>" \
+              -H "token:34ca8cc7-0d16-450f-96f2-3d46b0dc406e" \
               --request PUT --data $OldWorkflowID \
               https://api.memstash.io/values/old_workflow_id_${CIRCLE_WORKFLOW_ID}
       - run:
@@ -379,7 +379,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/cloudfront.yml \
               --stack-name "udapeople-cloudfront" \
-              --parameter-overrides WorkflowID="<< pipeline.parameters.workflow-id >>" \
+              --parameter-overrides WorkflowID="<<${CIRCLE_WORKFLOW_ID} \
               --tags project=udapeople
       - revert-migrations
       - destroy-environment
@@ -393,9 +393,9 @@ jobs:
       - run:
           name: Remove old stacks and files
           command: |
-                export OldWorkflowID=$(curl -H "token: << pipeline.parameters.memstash-token >>" --request GET https://api.memstash.io/values/old_workflow_id_${CIRCLE_WORKFLOW_ID})
+                export OldWorkflowID=$(curl -H "token:34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request GET https://api.memstash.io/values/old_workflow_id_${CIRCLE_WORKFLOW_ID})
                 echo "Old Workflow ID: ${OldWorkflowID}"
-                if [ "${OldWorkflowID}" != "<< pipeline.parameters.workflow-id >>" ]
+                if [ "${OldWorkflowID}" !=${CIRCLE_WORKFLOW_ID} ]
                 then
                   aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
                   aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
