@@ -398,20 +398,17 @@ jobs:
                     --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
             echo Stack names: "${STACKS[@]}"   
 
-      - run:
-          name: Remove old stacks and S3 bucket
-          command: |
-                  for OldWorkflowID in "${STACKS[@]}"; do
-                  if [[ $OldWorkflowID =~ "${CIRCLE_WORKFLOW_ID:0:7}" ]]
-                  then
-                    echo "Current: $OldWorkflowID"
-                  else
-                    export OldId=${OldWorkflowID: -7}
-                    aws s3 rm "s3://udapeople-${OldId}" --recursive
-                    aws cloudformation delete-stack --stack-name "udapeople-backend-${OldId}"
-                    aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldId}"
-                  fi
-                  done
+            for OldWorkflowID in "${STACKS[@]}"; do
+            if [[ $OldWorkflowID =~ "${CIRCLE_WORKFLOW_ID:0:7}" ]]
+            then
+              echo "Current: $OldWorkflowID"
+            else
+              export OldId=${OldWorkflowID: -7}
+              aws s3 rm "s3://udapeople-${OldId}" --recursive
+              aws cloudformation delete-stack --stack-name "udapeople-backend-${OldId}"
+              aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldId}"
+            fi
+            done
 
 
 workflows:
