@@ -292,6 +292,7 @@ jobs:
             apk add --update npm
             pip install awscli
             aws --version
+            
       - run:
           name: Deploy backend
           command: |
@@ -345,6 +346,7 @@ jobs:
             else
                 return 1
             fi
+
       - run:
           name: Frontend smoke test.
           command: |
@@ -356,6 +358,7 @@ jobs:
               else
                 return 1
               fi
+
 
   cloudfront-update:
     docker:
