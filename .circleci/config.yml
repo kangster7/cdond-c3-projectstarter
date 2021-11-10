@@ -14,14 +14,14 @@ commands:
         workflow_id:
           type: string
       steps:
-        - run:
-            name: Delete all files in the current S3 bucket
-            command: |
-              if aws s3api head-bucket --bucket udapeople-s3bucket-${CIRCLE_WORKFLOW_ID}
-              then
-                aws s3 rm s3://udapeople-s3bucket-${CIRCLE_WORKFLOW_ID}/ --recursive
-              fi
-            when: on_fail
+        # - run:
+        #     name: Delete all files in the current S3 bucket
+        #     command: |
+        #       if aws s3api head-bucket --bucket udapeople-${CIRCLE_WORKFLOW_ID}
+        #       then
+        #         aws s3 rm s3://udapeople-${CIRCLE_WORKFLOW_ID}/ --recursive
+        #       fi
+        #     when: on_fail
 
         - run:
             name: Destroy environment
@@ -401,16 +401,17 @@ jobs:
       - run:
           name: Remove old stacks and S3 bucket
           command: |
-            for OldWorkflowID in "${STACKS[@]}"; do
-            if [[ "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" == $OldWorkflowID || "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" == $OldWorkflowID ]]
-            then
-            echo "THIS IS THE CURRENT STACK: $OldWorkflowID"
-            else
-            aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
-            aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
-            aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
-            fi
-            done
+                  for OldWorkflowID in "${STACKS[@]}"; do
+                  if [[ $OldWorkflowID =~ "${CIRCLE_WORKFLOW_ID:0:7}" ]]
+                  then
+                    echo "Current: $OldWorkflowID"
+                  else
+                    export OldId=${OldWorkflowID: -7}
+                    aws s3 rm "s3://udapeople-${OldId}" --recursive
+                    aws cloudformation delete-stack --stack-name "udapeople-backend-${OldId}"
+                    aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldId}"
+                  fi
+                  done
 
 
 workflows:
@@ -442,9 +443,3 @@ workflows:
           requires: [smoke-test]
       - cleanup:
           requires: [cloudfront-update]
-
-
-
-
- # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-          
