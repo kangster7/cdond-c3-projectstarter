@@ -215,6 +215,7 @@ jobs:
               cd backend
               npm install
               npm run migrations > migrations_dump.txt
+              cat migrations_dump.txt
 
         - run:
             name: Send migration results to memstash
@@ -224,6 +225,94 @@ jobs:
                 curl -H "Content-Type: text/plain" -H "token: 34ca8cc7-0d16-450f-96f2-3d46b0dc406e" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
               fi
 
+
+  deploy-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            cd frontend
+            sudo npm install webpack-dev-server -g
+            sudo npm install 
+      - run:
+          name: Get backend url
+          command: |
+            export BACKEND_IP= $(aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress') 
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "API_URL = ${API_URL}"
+            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            cat frontend/.env
+      
+      - aws-cli/setup
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            npm install
+            npm run build
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+
+#     Here's where you will add some code to rollback on failure 
+      - run:
+          name: Install AWS CLI for rollback
+          when: on_fail
+          command: |
+              apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+
+      - revert-migrations
+      - destroy-environment:
+              workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+
+
+  deploy-backend:
+    docker:
+      - image : python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+            fingerprints: ["45:5b:10:ab:ac:4d:d7:f0:eb:b0:cc:74:b2:4a:75:13"]
+      - attach_workspace:
+            at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+            apk add --update tar
+            apk add --update gzip
+            apk add --update curl
+            apk add --update nodejs npm
+            apk add --update npm
+            pip install awscli
+            aws --version
+
+      - run:
+          name: Deploy backend
+          command: |
+            cd backend
+            npm i
+            npm run build
+            cd ..
+            tar -C backend -czvf artifact.tar.gz .
+            mv artifact.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+            cd .circleci/ansible
+            echo "Contents  of the inventory.txt file is -------"
+            cat inventory.txt
+            ansible-playbook -i inventory.txt deploy-backend.yml
+      # Here's where you will add some code to rollback on failure
+
+      - run:
+          name: Install AWS CLI for rollback
+          when: on_fail
+          command: |
+              apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+      - revert-migrations
+      - destroy-environment:
+              workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
 
 workflows:
@@ -237,7 +326,10 @@ workflows:
             requires: [deploy-infrastructure]
       - run-migrations:
             requires: [configure-infrastructure]
+      - deploy-backend:
+          requires: [run-migrations]
+      - deploy-frontend:
+          requires: [run-migrations]
 
-            
 
 
