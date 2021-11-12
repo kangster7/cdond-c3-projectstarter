@@ -134,11 +134,18 @@ jobs:
 
   deploy-infrastructure:
     docker:
-      - image: amazon/aws-cli
+      - image: python:3.7-alpine3.11 
     steps:
       - checkout
-      - run: yum install -y tar gzip 
-      - run:
+      - run: 
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+            apk add --update tar
+            apk add --update gzip
+            pip install awscli
+            aws --version
+      - run: 
           name: Ensure back-end infrastructure exists
           command: |
             aws cloudformation deploy \
