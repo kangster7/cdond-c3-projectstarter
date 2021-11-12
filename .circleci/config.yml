@@ -410,5 +410,4 @@ jobs:
 workflows:
   default:
     jobs:
-      - cleanup:
-          requires: [cloudfront-update]
+      - cleanup
