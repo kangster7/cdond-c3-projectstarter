@@ -131,6 +131,7 @@ jobs:
              npm audit fix --force
              npm audit --audit-level=critical
 
+
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
@@ -184,4 +185,4 @@ workflows:
             requires: [build-backend]
       - deploy-infrastructure:
             requires: [scan-frontend,scan-backend]
-            
+
