@@ -439,5 +439,3 @@ workflows:
           requires: [run-migrations]
       - cloudfront-update:
           requires: [deploy-frontend]
-      - cleanup:
-          requires: [cloudfront-update]
