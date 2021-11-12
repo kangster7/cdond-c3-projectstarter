@@ -238,7 +238,9 @@ jobs:
           command: |
             cd frontend
             sudo npm install webpack-dev-server -g
-            sudo npm install 
+            sudo npm install
+            pip install awscli
+            aws --version 
       - run:
           name: Get backend url
           command: |
