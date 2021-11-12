@@ -233,14 +233,13 @@ jobs:
       - checkout
       - attach_workspace:
           at: ~/
+      - aws-cli/setup
       - run:
           name: Install dependencies
           command: |
             cd frontend
             sudo npm install webpack-dev-server -g
             sudo npm install
-            pip install awscli
-            aws --version 
       - run:
           name: Get backend url
           command: |
@@ -250,8 +249,6 @@ jobs:
             echo "API_URL = ${API_URL}"
             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
-      
-      - aws-cli/setup
       - run:
           name: Deploy frontend objects
           command: |
