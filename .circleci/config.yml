@@ -410,19 +410,5 @@ jobs:
 workflows:
   default:
     jobs:
-      - build-frontend
-      - build-backend
-      - deploy-infrastructure:
-            requires: [build-frontend,build-backend]
-      - configure-infrastructure:
-            requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
-      - deploy-backend:
-          requires: [run-migrations]
-      - deploy-frontend:
-          requires: [run-migrations]
-      - cloudfront-update:
-          requires: [deploy-frontend]
       - cleanup:
           requires: [cloudfront-update]
